@@ -1,21 +1,32 @@
 #Region ;**** Directives created by AutoIt3Wrapper_GUI ****
+#AutoIt3Wrapper_Icon=C:\ISN AutoIt Studio\autoitstudioicon.ico
+#AutoIt3Wrapper_UseUpx=y
 #AutoIt3Wrapper_Res_requestedExecutionLevel=highestAvailable
 #EndRegion ;**** Directives created by AutoIt3Wrapper_GUI ****
 #include <Misc.au3>
 _Singleton("memory-reducer")
+Global $list,$interval
 
 ;~~~~Settings~~~~
 
-;here you can add any other processes but be careful which processes you choose
-;because in some cases this will slow down your application or even your PC.
+$list = IniRead(@ScriptDir&"\"&"Reduce Memory.ini","Settings","Processes","")
+if $list = "" Then
+do
+	IniWrite(@ScriptDir&"\"&"Reduce Memory.ini","Settings","Processes","chrome.exe;explorer.exe;svchost.exe;MapleStory.exe")
+	$list = IniRead(@ScriptDir&"\"&"Reduce Memory.ini","Settings","Processes","")
+until $list <> ""
+EndIf
+Global $processlist = StringSplit($list, "|;,")
 
-Global $list = IniRead(@ScriptDir&"\"&"Reduce Memory.ini","Settings","Processes","empty")
-Global $processlist = StringSplit($list, "|")
-
-Global Const $interval = IniRead(@ScriptDir&"\"&"Reduce Memory.ini","Settings","Interval in Milliseconds","2000") ; interval at which the memory is freed, anything below this will almost certainly only slow down your system.
+$interval = IniRead(@ScriptDir&"\"&"Reduce Memory.ini","Settings","Interval in Milliseconds","") ; interval at which the memory is freed, anything below this will almost certainly only slow down your system.
+if $interval = "" Then
+do
+	IniWrite(@ScriptDir&"\"&"Reduce Memory.ini","Settings","Interval in Milliseconds","2000")
+	$interval = IniRead(@ScriptDir&"\"&"Reduce Memory.ini","Settings","Interval in Milliseconds","")
+until $interval <> ""
+EndIf
 
 ;~~~~Settings~~~~
-
 
 While 1
 	$timer = TimerInit()
@@ -44,11 +55,5 @@ Func _ReduceMemory($i_PID = -1)
 	Else
 		Local $ai_Return = DllCall("psapi.dll", 'int', 'EmptyWorkingSet', 'long', -1)
 	EndIf
-
 	Return $ai_Return[0]
 EndFunc   ;==>_ReduceMemory
-
-For $i = 1 To UBound($processlist) - 1
-	$pid = ProcessExists($processlist[$i])
-	If $pid Then _ReduceMemory($pid)
-Next
